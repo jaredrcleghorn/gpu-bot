@@ -1,7 +1,9 @@
 {
   "email": "",
   "password": "",
-  "delay": 5,
+  "delay_monitor": 5,
+  "delay_buy": 1,
+  "timeout_buy": 30,
   "asin": "B08HR3Y5GQ",
   "min_price": 800,
   "max_price": 1000
