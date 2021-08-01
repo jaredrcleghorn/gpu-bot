@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 chromedriver-py = "*"
 coloredlogs = "*"
+lxml = "*"
+random-user-agent = "*"
+requests = "*"
 selenium = "*"
 
 [dev-packages]

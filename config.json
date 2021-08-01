@@ -1,4 +1,8 @@
 {
   "email": "",
-  "password": ""
+  "password": "",
+  "delay": 5,
+  "asin": "B08HR3Y5GQ",
+  "min_price": 800,
+  "max_price": 1000
 }
