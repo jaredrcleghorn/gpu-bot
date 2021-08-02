@@ -5,6 +5,7 @@ from furl import furl
 import json
 import logging
 from lxml import html
+import random
 from random_user_agent.params import HardwareType, Popularity, SoftwareType
 from random_user_agent.user_agent import UserAgent
 import re
@@ -21,6 +22,14 @@ def get_random_user_agent(user_agent_rotator, logger):
     user_agent = user_agent_rotator.get_random_user_agent()
     logger.debug(f'using user agent {user_agent}')
     return user_agent
+
+def get_random_proxy(proxies, logger):
+    if proxies:
+        proxy = random.choice(proxies)
+        logger.debug(f'using proxy {proxy}')
+        return {'https': f'http://{proxy}'}
+    else:
+        return None
 
 def calc_time_delta(start_time):
     return int(1000 * (time.time() - start_time))
@@ -124,9 +133,12 @@ while True:
     # randomize user agent
     user_agent = get_random_user_agent(user_agent_rotator, logger)
 
+    # randomize proxy
+    proxies = get_random_proxy(config['proxies'], logger)
+
     # send ajax request
     start_time = time.time()
-    r = requests.get(f"{AMAZON_SMILE_BASE_URL}/gp/aod/ajax?asin={config['asin']}", cookies={'session-id': ''}, headers={'user-agent': user_agent})
+    r = requests.get(f"{AMAZON_SMILE_BASE_URL}/gp/aod/ajax?asin={config['asin']}", cookies={'session-id': ''}, headers={'user-agent': user_agent}, proxies=proxies)
     logger.debug(f'ajax request took {int(1000 * (time.time() - start_time))} ms')
     logger.debug(f'ajax request returned status code {r.status_code}')
 
@@ -177,6 +189,9 @@ while True:
 
                         # randomize user agent
                         s.headers.update({'user-agent': get_random_user_agent(user_agent_rotator, logger)})
+
+                        # randomize proxy
+                        s.proxies = get_random_proxy(config['proxies'], logger)
 
                         # send turbo init request
                         start_time = time.time()

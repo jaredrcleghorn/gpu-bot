@@ -30,7 +30,7 @@ pipenv install
 
 ## Configuration
 
-Fill out the `config.json` file.
+Fill out the `config.json` file. Proxies should be in the format `username:password@ip:port`.
 
 ## Usage
 

@@ -6,5 +6,6 @@
   "timeout_buy": 30,
   "asin": "B08HR3Y5GQ",
   "min_price": 800,
-  "max_price": 1000
+  "max_price": 1000,
+  "proxies": []
 }
