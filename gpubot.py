@@ -130,121 +130,124 @@ while True:
 
     logger.info('checking stock')
 
-    # randomize user agent
-    user_agent = get_random_user_agent(user_agent_rotator, logger)
+    try:
+        # randomize user agent
+        user_agent = get_random_user_agent(user_agent_rotator, logger)
 
-    # randomize proxy
-    proxies = get_random_proxy(config['proxies'], logger)
+        # randomize proxy
+        proxies = get_random_proxy(config['proxies'], logger)
 
-    # send ajax request
-    start_time = time.time()
-    r = requests.get(f"{AMAZON_SMILE_BASE_URL}/gp/aod/ajax?asin={config['asin']}", cookies={'session-id': ''}, headers={'user-agent': user_agent}, proxies=proxies)
-    logger.debug(f'ajax request took {int(1000 * (time.time() - start_time))} ms')
-    logger.debug(f'ajax request returned status code {r.status_code}')
+        # send ajax request
+        start_time = time.time()
+        r = requests.get(f"{AMAZON_SMILE_BASE_URL}/gp/aod/ajax?asin={config['asin']}", cookies={'session-id': ''}, headers={'user-agent': user_agent}, proxies=proxies)
+        logger.debug(f'ajax request took {int(1000 * (time.time() - start_time))} ms')
+        logger.debug(f'ajax request returned status code {r.status_code}')
 
-    if r.status_code == 200:
-        offer_divs = html.fromstring(r.text).xpath("//div[@id='aod-sticky-pinned-offer'] | //div[@id='aod-offer']")
+        if r.status_code == 200:
+            offer_divs = html.fromstring(r.text).xpath("//div[@id='aod-sticky-pinned-offer'] | //div[@id='aod-offer']")
 
-        for offer_div in offer_divs:
-            price_spans = offer_div.xpath(".//span[@class='a-price-whole']")
+            for offer_div in offer_divs:
+                price_spans = offer_div.xpath(".//span[@class='a-price-whole']")
 
-            if price_spans:
-                price = int(price_spans[0].text.replace(',', ''))
-                logger.info(f'offer for ${price}')
+                if price_spans:
+                    price = int(price_spans[0].text.replace(',', ''))
+                    logger.info(f'offer for ${price}')
 
-                # check price
-                if config['min_price'] <= price <= config['max_price']:
-                    logger.success('price in range')
-                    # get the offering id
-                    try:
-                        offering_id = offer_div.xpath(".//input[@name='offeringID.1']")[0].value
-                        logger.debug(f'offering_id = {offering_id}')
-                    except IndexError as e:
-                        logger.error(e)
-                        continue
+                    # check price
+                    if config['min_price'] <= price <= config['max_price']:
+                        logger.success('price in range')
+                        # get the offering id
+                        try:
+                            offering_id = offer_div.xpath(".//input[@name='offeringID.1']")[0].value
+                            logger.debug(f'offering_id = {offering_id}')
+                        except IndexError as e:
+                            logger.error(e)
+                            continue
 
-                    # build data
-                    data = {
-                        'offerListing.1': offering_id,
-                        'quantity.1': '1',
-                    }
+                        # build data
+                        data = {
+                            'offerListing.1': offering_id,
+                            'quantity.1': '1',
+                        }
 
-                    # create session
-                    s = requests.Session()
-                    s.headers = {
-                        'content-type': 'application/x-www-form-urlencoded',
-                        'x-amz-checkout-csrf-token': cookies['session-id'],
-                    }
-                    for n, v in cookies.items():
-                        s.cookies.set(n, v)
+                        # create session
+                        s = requests.Session()
+                        s.headers = {
+                            'content-type': 'application/x-www-form-urlencoded',
+                            'x-amz-checkout-csrf-token': cookies['session-id'],
+                        }
+                        for n, v in cookies.items():
+                            s.cookies.set(n, v)
 
-                    # calc timeout time
-                    timeout_time = time.time() + config['timeout_buy']
+                        # calc timeout time
+                        timeout_time = time.time() + config['timeout_buy']
 
-                    while True:
-                        # calc next time
-                        next_time_buy = time.time() + config['delay_buy']
+                        while True:
+                            # calc next time
+                            next_time_buy = time.time() + config['delay_buy']
 
-                        logger.info('trying to cart')
+                            logger.info('trying to cart')
 
-                        # randomize user agent
-                        s.headers.update({'user-agent': get_random_user_agent(user_agent_rotator, logger)})
+                            # randomize user agent
+                            s.headers.update({'user-agent': get_random_user_agent(user_agent_rotator, logger)})
 
-                        # randomize proxy
-                        s.proxies = get_random_proxy(config['proxies'], logger)
+                            # randomize proxy
+                            s.proxies = get_random_proxy(config['proxies'], logger)
 
-                        # send turbo init request
-                        start_time = time.time()
-                        r = s.post(f'{AMAZON_SMILE_BASE_URL}/checkout/turbo-initiate?pipelineType=turbo', data)
-                        logger.debug(f'turbo init request took {calc_time_delta(start_time)} ms')
-                        logger.debug(f'turbo init request returned status code {r.status_code}')
+                            # send turbo init request
+                            start_time = time.time()
+                            r = s.post(f'{AMAZON_SMILE_BASE_URL}/checkout/turbo-initiate?pipelineType=turbo', data)
+                            logger.debug(f'turbo init request took {calc_time_delta(start_time)} ms')
+                            logger.debug(f'turbo init request returned status code {r.status_code}')
 
-                        if r.status_code == 200:
-                            if r.text != ' ':
-                                logger.success('carted')
+                            if r.status_code == 200:
+                                if r.text != ' ':
+                                    logger.success('carted')
 
-                                # check for captcha
-                                captcha_forms = html.fromstring(r.text).xpath('//form[contains(@action, "validateCaptcha")]')
-                                if captcha_forms:
-                                    logger.info('got captcha')
+                                    # check for captcha
+                                    captcha_forms = html.fromstring(r.text).xpath('//form[contains(@action, "validateCaptcha")]')
+                                    if captcha_forms:
+                                        logger.info('got captcha')
 
-                                    # try to solve captcha
-                                    captcha_form = captcha_forms[0]
-                                    captcha_img_link = captcha_form.xpath('//img[contains(@src, "amazon.com/captcha/")]')[0].attrib['src']
-                                    captcha_solution = AmazonCaptcha.fromlink(captcha_img_link).solve()
+                                        # try to solve captcha
+                                        captcha_form = captcha_forms[0]
+                                        captcha_img_link = captcha_form.xpath('//img[contains(@src, "amazon.com/captcha/")]')[0].attrib['src']
+                                        captcha_solution = AmazonCaptcha.fromlink(captcha_img_link).solve()
 
-                                    # check for captcha solution
-                                    if captcha_solution:
-                                        logger.success('solved captcha')
-                                        logger.debug(f'captcha_solution = {captcha_solution}')
+                                        # check for captcha solution
+                                        if captcha_solution:
+                                            logger.success('solved captcha')
+                                            logger.debug(f'captcha_solution = {captcha_solution}')
 
-                                        # send validate captcha request
-                                        captcha_inputs = captcha_form.xpath('.//input')
-                                        args = {captcha_input.name: captcha_solution if captcha_input.type == 'text' else captcha_input.value for captcha_input in captcha_inputs}
-                                        f = furl(AMAZON_SMILE_BASE_URL)
-                                        f.set(path=captcha_form.attrib['action'])
-                                        f.add(args=args)
-                                        start_time = time.time()
-                                        r = s.get(f.url)
-                                        logger.debug(f'validate captcha request took {calc_time_delta(start_time)} ms')
-                                        logger.debug(f'validate captcha request returned status code {r.status_code}')
+                                            # send validate captcha request
+                                            captcha_inputs = captcha_form.xpath('.//input')
+                                            args = {captcha_input.name: captcha_solution if captcha_input.type == 'text' else captcha_input.value for captcha_input in captcha_inputs}
+                                            f = furl(AMAZON_SMILE_BASE_URL)
+                                            f.set(path=captcha_form.attrib['action'])
+                                            f.add(args=args)
+                                            start_time = time.time()
+                                            r = s.get(f.url)
+                                            logger.debug(f'validate captcha request took {calc_time_delta(start_time)} ms')
+                                            logger.debug(f'validate captcha request returned status code {r.status_code}')
 
-                                        check_out(logger, r.text, s)
-                                    # no captcha solution
+                                            check_out(logger, r.text, s)
+                                        # no captcha solution
+                                        else:
+                                            logger.warning('could not solve captcha')
+                                    # no captcha
                                     else:
-                                        logger.warning('could not solve captcha')
-                                # no captcha
+                                        check_out(logger, r.text, s)
+                                # no stock
                                 else:
-                                    check_out(logger, r.text, s)
-                            # no stock
-                            else:
-                                logger.warning('could not cart')
+                                    logger.warning('could not cart')
 
-                        # check for timeout
-                        if timeout_time - time.time() < 0:
-                            logger.info('timed out trying to buy')
-                            break
+                            # check for timeout
+                            if timeout_time - time.time() < 0:
+                                logger.info('timed out trying to buy')
+                                break
 
-                        sleep_time_left(next_time_buy)
+                            sleep_time_left(next_time_buy)
+    except Exception as e:
+        logger.error(e)
 
     sleep_time_left(next_time_monitor)
