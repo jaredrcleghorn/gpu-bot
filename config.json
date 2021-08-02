@@ -4,8 +4,19 @@
   "delay_monitor": 5,
   "delay_buy": 1,
   "timeout_buy": 30,
-  "asin": "B08HR3Y5GQ",
-  "min_price": 800,
-  "max_price": 1000,
+  "items": [
+    {
+      "name": "EVGA 3080 FTW3 ULTRA GAMING",
+      "asin": "B08HR3Y5GQ",
+      "min_price": 800,
+      "max_price": 1000
+    },
+    {
+      "name": "EVGA 3080 XC3 BLACK GAMING",
+      "asin": "B08HR6FMF3",
+      "min_price": 720,
+      "max_price": 920
+    }
+  ],
   "proxies": []
 }
